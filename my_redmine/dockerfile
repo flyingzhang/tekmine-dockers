@@ -1,0 +1,38 @@
+FROM redmine:3-passenger
+
+RUN apt-get update && apt-get install -y --no-install-recommends subversion git unzip && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc make binutils && rm -rf /var/lib/apt-lists/* 
+RUN apt-get update && apt-get install -y --no-install-recommends ruby2.1-dev libmysqlclient-dev && rm -rf /var/lib/apt-lists/* 
+RUN apt-get update && apt-get install -y --no-install-recommends ed && rm -rf /var/lib/apt-lists/* 
+#RUN rm -rf /var/lib/apt/lists/*
+# && rm -rf /var/lib/apt/lists/*
+
+# Not try using apache2 to run passenger, that is not what we expect for docker
+# RUN apt-get install -y apache2 libapache2-mod-passenger
+
+WORKDIR /usr/src/redmine/plugins
+
+RUN curl -fSL "https://bitbucket.org/haru_iida/redmine_code_review/downloads/redmine_code_review-0.7.0.zip" -o redmine_code_review-0.7.0.zip && unzip redmine_code_review-0.7.0.zip
+
+# && rm redmine_code_review-0.7.0.zip
+
+RUN curl -fkSL "https://redmine.ociotec.com/attachments/download/353/scrum%20v0.12.0.tar.gz" -o scrumv0.12.0.tar.gz && tar -zxvf scrumv0.12.0.tar.gz && mv "scrum v0.12.0" scrum && rm -f scrumv0.12.0.tar.gz
+
+# 
+RUN git clone git://github.com/credativUK/redmine_image_clipboard_paste.git redmine_image_clipboard_paste && sed -i "1d" redmine_image_clipboard_paste/Gemfile
+
+ENV PASSENGER_COMPILE_NATIVE_SUPPORT_BINARY 0
+ENV PASSENGER_DOWNLOAD_NATIVE_SUPPORT_BINARY 0
+
+WORKDIR /usr/src/redmine/
+
+RUN sed -i "s/rubygems.org/ruby.taobao.org/g" Gemfile
+
+RUN sed -i 's/--non-interactive/--non-interactive --trust-server-cert/' lib/redmine/scm/adapters/subversion_adapter.rb
+
+RUN rm -rf plugins/redmine_image_clipboard_paste/apps/view/wiki
+
+COPY config.erb.ed /config.erb.ed
+RUN ed /usr/local/bundle/gems/passenger-5.0.16/resources/templates/standalone/config.erb </config.erb.ed && rm /config.erb.ed
+COPY docker-entrypoint.sh /docker-entrypoint.sh

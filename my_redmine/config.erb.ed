@@ -1,0 +1,12 @@
+154a
+        passenger_document_root '<%= app[:root] %>/public';
+        }
+.
+148,152c
+        location ~ ^/redmine(/.*|$) {
+        alias '<%= app[:root] %>/public$1';
+        passenger_base_uri /redmine;
+.
+w
+q
+
